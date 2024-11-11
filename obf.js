@@ -2,12 +2,12 @@ const JavaScriptObfuscator = require('javascript-obfuscator');
 const fs = require('fs');
 const path = require('path');
 
-// Input file and output directory
-const inputFilePath = './src/cat/lc.cat.js';
+// Directory containing the JavaScript files to obfuscate
+const inputDirectory = './src';
+// Directory to save the obfuscated files
 const outputDirectory = './dist';
-const outputFilePath = path.join(outputDirectory, 'lc.min.js');
 
-// Function to clear the output directory
+// Function to remove all files and subdirectories from the output directory
 const clearOutputDirectory = (directory) => {
     if (fs.existsSync(directory)) {
         fs.rmSync(directory, { recursive: true, force: true });
@@ -19,7 +19,7 @@ const clearOutputDirectory = (directory) => {
 clearOutputDirectory(outputDirectory);
 fs.mkdirSync(outputDirectory, { recursive: true });
 
-// Obfuscation options
+// Obfuscation options (customize as needed)
 const obfuscationOptions = {
     compact: true,
     controlFlowFlattening: true,
@@ -35,22 +35,45 @@ const obfuscationOptions = {
     disableConsoleOutput: true
 };
 
-// Obfuscate lc.cat.js and output to lc.min.js
-const obfuscateFile = (inputPath, outputPath) => {
+// Function to obfuscate a single file
+const obfuscateFile = (filePath, outputFilePath) => {
     try {
-        const inputCode = fs.readFileSync(inputPath, 'utf8');
+        const inputCode = fs.readFileSync(filePath, 'utf8');
         
         // Obfuscate the code
         const obfuscatedCode = JavaScriptObfuscator.obfuscate(inputCode, obfuscationOptions).getObfuscatedCode();
         
         // Write the obfuscated code to the output file
-        fs.writeFileSync(outputPath, obfuscatedCode, 'utf8');
+        fs.writeFileSync(outputFilePath, obfuscatedCode, 'utf8');
         
-        console.log(`Obfuscated: ${inputPath} -> ${outputPath}`);
+        console.log(`Obfuscated: ${filePath} -> ${outputFilePath}`);
     } catch (error) {
-        console.error(`Error obfuscating file ${inputPath}:`, error);
+        console.error(`Error obfuscating file ${filePath}:`, error);
     }
 };
 
-// Run obfuscation on lc.cat.js
-obfuscateFile(inputFilePath, outputFilePath);
+// Function to obfuscate all JavaScript files in a directory
+const obfuscateDirectory = (inputDir, outputDir) => {
+    fs.readdirSync(inputDir).forEach(file => {
+        const filePath = path.join(inputDir, file);
+        // If the file is lc.js, set the output to lc.min.js
+        const outputFilePath = file === 'lc.js' 
+            ? path.join(outputDir, 'lc.min.js') 
+            : path.join(outputDir, file);
+
+        // Check if the current path is a directory
+        if (fs.statSync(filePath).isDirectory()) {
+            // Recursively obfuscate files in subdirectories
+            if (!fs.existsSync(outputFilePath)) {
+                fs.mkdirSync(outputFilePath);
+            }
+            obfuscateDirectory(filePath, outputFilePath);
+        } else if (path.extname(file) === '.js') {
+            // Only obfuscate JavaScript files
+            obfuscateFile(filePath, outputFilePath);
+        }
+    });
+};
+
+// Start obfuscating the directory
+obfuscateDirectory(inputDirectory, outputDirectory);
