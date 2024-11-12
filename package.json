@@ -9,7 +9,7 @@
     "dist/lcs_country.min.css"
   ],
   "scripts": {
-    "build": "node obf.js && jsdoc -c jsdoc.json && npm run minify-css",
+    "build": "webpack --config webpack.config.js && node obf.js && jsdoc -c jsdoc.json && npm run minify-css",
     "release": "npm run build && standard-version && git push --follow-tags && npm publish",
     "minify-css": "npx cleancss -o dist/lcs_country.min.css src/lcs_country.css",
     "test": "jest"

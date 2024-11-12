@@ -4,9 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LCS Country</title>
-    <script src="dist/lc.min.js"></script>
+    <script type="module" src="src/lc.js"></script>
 </head>
 <body>
+    
+    <div class="loadCountries"></div>
+
+    <script type="module">
+        // Assuming we have the `lcsCountry` class as defined
+
+// Example 1: Initialize with no parameters (all countries included)
+const allCountriesInstance = new lcsCountry();
+console.log("All countries data: ", allCountriesInstance);
+
+// Example 2: Initialize with `exception` parameter (exclude specified countries)
+const excludeCountriesInstance = new lcsCountry({
+    exception: ["afghanistan", "albania", "algeria"]
+});
+console.log("Countries excluding Afghanistan, Albania, and Algeria: ", excludeCountriesInstance);
+
+// Example 3: Initialize with `only` parameter (include only specified countries)
+const onlyCountriesInstance = new lcsCountry({
+    only: ["andorra", "angola", "argentina"]
+});
+console.log("Only Andorra, Angola, and Argentina: ", onlyCountriesInstance);
+
+// Example 4: Initialize with `getData` set to true (if this flag triggers specific data handling)
+const getDataInstance = new lcsCountry({
+    getData: true
+});
+console.log("Instance with getData flag: ", getDataInstance);
+
+    </script>
     
 </body>
 </html>
