@@ -2605,14 +2605,52 @@ const lcsCountries = {
   }
 };
 
+class lcsCountry {
+
+    constructor({ exception = [], only = [], getData = false } = {}) {
+        this.exception = exception || [];
+        this.only = only || [];
+        this.getData = getData || false;
+
+        // Execute the build method
+        this.#buildHTMLOutput();
+    }
+
+    #buildHTMLOutput() {
+        let countryListToBuild = { ...lcsCountries }; // Clone to avoid modifying original data
+
+        // Remove exceptions if specified
+        if (Array.isArray(this.exception) &amp;&amp; this.exception.length > 0) {
+            for (let i = 0; i &lt; this.exception.length; i++) {
+                const countryID = this.exception[i];
+                delete countryListToBuild[countryID];
+            }
+        }
+
+        // Build for 'only' if specified
+        if (Array.isArray(this.only) &amp;&amp; this.only.length > 0) {
+            // Reset the countryListToBuild object to include only specified countries
+            const onlyCountries = {};
+            for (let i = 0; i &lt; this.only.length; i++) {
+                const countryID = this.only[i];
+                if (lcsCountries[countryID]) {
+                    onlyCountries[countryID] = lcsCountries[countryID];
+                }
+            }
+            countryListToBuild = onlyCountries;
+        }
+
+        const countryWrapper = document.createElement("div");
+
+        // Additional HTML generation logic can be implemented here
+        console.log("Country list to build:", countryListToBuild);
+    }
+}
 
 
-
-
-
-
-
-console.log("Hi");</code></pre>
+// Example usage
+const instance = new lcsCountry();
+console.log(instance);</code></pre>
         </article>
     </section>
 

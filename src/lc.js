@@ -2577,49 +2577,294 @@ const lcsCountries = {
   }
 };
 
-class lcsCountry {
 
-    constructor({ exception = [], only = [], getData = false } = {}) {
-        this.exception = exception || [];
-        this.only = only || [];
-        this.getData = getData || false;
 
-        // Execute the build method
-        this.#buildHTMLOutput();
+
+
+
+
+
+
+/**
+ * @constant {string} styleContents
+ * @description
+ * Contains CSS styles as a string for customizing the appearance of country list elements and their container.
+ * These styles include visual attributes like background color, layout, padding, font, borders, and hover effects.
+ */
+const styleContents = `
+
+    .lcsCountryListContainer {
+        background-color: #fff;
+        max-width: 680px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0px 0px 5px #ccc;
     }
 
-    #buildHTMLOutput() {
-        let countryListToBuild = { ...lcsCountries }; // Clone to avoid modifying original data
+    .lcsCountryList {
+        padding: 8px 20px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        border-bottom: 0.1px solid #cccccc99;
+    }
 
-        // Remove exceptions if specified
-        if (Array.isArray(this.exception) && this.exception.length > 0) {
-            for (let i = 0; i < this.exception.length; i++) {
-                const countryID = this.exception[i];
-                delete countryListToBuild[countryID];
+    .lcsCountryList:nth-child(1) {
+        border-top: 0.1px solid #cccccc99;
+    }
+
+    .lcsCountryList:hover {
+        background-color: #cccccc99;
+    }
+
+`;
+/**
+ * @constant {HTMLElement} styleContentsElement
+ * @description
+ * Creates a <style> element containing the CSS from `styleContents` to customize the appearance of `.lcsCountryListContainer` and `.lcsCountryList` elements.
+ * The style element is then inserted into the document's <head>, applying the defined CSS styles to matching elements within the document.
+ */
+const styleContentsElement = document.createElement("style");
+styleContentsElement.innerHTML = styleContents;
+document.head.insertAdjacentHTML("beforeend", styleContentsElement.outerHTML);
+
+/**
+ * Generates a list of countries with options for filtering and customization. 
+ * Allows data extraction and HTML output based on the `purpose` parameter.
+ *
+ * @param {Object} options - Configuration options for customizing the output.
+ * @param {Array<string>} [options.exception=[]] - Country IDs to exclude from the result.
+ * @param {Array<string>} [options.only=[]] - Country IDs to exclusively include in the result.
+ * @param {string} [options.purpose="extraction"] - Specifies the function's purpose: "input" for HTML output or "extraction" for data retrieval.
+ *                                                  - If the purpose is "input", the HTML output is inserted into the provided outputElement. 
+ *                                                    You can also return the country data by setting the getData parameter to true (this is the default); otherwise, set it to false.
+ *                                                  - If purpose is "extraction", only country data is returned.
+ * @param {boolean} [options.getData=true] - Specifies if country data should be returned; required to be `true` for "extraction" purpose.
+ * @param {HTMLElement|null} [options.outputElement=null] - The HTML element for output, required if purpose is "input".
+ * @param {string|null} [options.onSelectCallback=null] - Name of a callback function to call on country selection (only for "input" purpose).
+ * 
+ * @returns {Object|undefined} - Returns country data if `getData` is true; undefined if generating HTML only.
+ * 
+ * @throws {Error} Throws an error if `purpose` is not "input" or "extraction".
+ * @throws {Error} Throws an error if multiple input country lists are detected.
+ * @throws {Error} Throws an error if `outputElement` is missing for "input" purpose.
+ * @throws {Error} Throws an error if `getData` is not true for "extraction" purpose.
+ * @throws {Error} Throws an error if `outputElement` is provided for "extraction" purpose.
+ * @throws {Error} Throws an error if `onSelectCallback` is set without an "input" purpose.
+ */
+function lcsCountry(
+    { exception = [], only = [], purpose = "extraction", getData = true, outputElement = null, onSelectCallback = null } = {}
+) {
+    if (!["input", "extraction"].includes(purpose)) {
+        throw new Error("The purpose must be 'input' or 'extraction'.");
+    }
+
+    let countryListToBuild = { ...lcsCountries }; // Clone to avoid modifying original data
+
+    // Remove exceptions if specified
+    if (Array.isArray(exception) && exception.length > 0) {
+        for (let i = 0; i < exception.length; i++) {
+            const countryID = exception[i];
+            delete countryListToBuild[countryID];
+        }
+    }
+
+    // Build for 'only' if specified
+    if (Array.isArray(only) && only.length > 0) {
+        const onlyCountries = {};
+        for (let i = 0; i < only.length; i++) {
+            const countryID = only[i];
+            if (lcsCountries[countryID]) {
+                onlyCountries[countryID] = lcsCountries[countryID];
             }
         }
+        countryListToBuild = onlyCountries;
+    }
 
-        // Build for 'only' if specified
-        if (Array.isArray(this.only) && this.only.length > 0) {
-            // Reset the countryListToBuild object to include only specified countries
-            const onlyCountries = {};
-            for (let i = 0; i < this.only.length; i++) {
-                const countryID = this.only[i];
-                if (lcsCountries[countryID]) {
-                    onlyCountries[countryID] = lcsCountries[countryID];
-                }
-            }
-            countryListToBuild = onlyCountries;
+    const countryListContainer = document.createElement("div");
+    countryListContainer.classList.add("lcsCountryListContainer");
+
+    if (purpose === "input") {
+        const existingInput = document.querySelectorAll(".lcsCountryForInput");
+        if (existingInput.length > 0) {
+            throw new Error("You cannot have more than one country list for input on the same page.");
+        } else {
+            countryListContainer.classList.add("lcsCountryForInput");
         }
 
-        const countryWrapper = document.createElement("div");
+        if (!outputElement || !(outputElement instanceof HTMLElement)) {
+            throw new Error("You must provide a valid HTML element, using the object key 'outputElement', if the purpose is input.");
+        }
+    } else {
+        if (getData !== true) {
+            throw new Error("getData must be set to true if the purpose is extraction.");
+        }
 
-        // Additional HTML generation logic can be implemented here
-        console.log("Country list to build:", countryListToBuild);
+        if (outputElement && outputElement instanceof HTMLElement) {
+            throw new Error("You cannot provide an HTML element if the purpose is extraction. Set the purpose to input to retrieve HTML output.");
+        }
+
+        if (onSelectCallback !== null) {
+            throw new Error("onSelectCallback should be set only for input purposes.");
+        }
+    }
+
+    for (let countryKey in countryListToBuild) {
+        if (countryListToBuild.hasOwnProperty(countryKey)) {
+            const country = countryListToBuild[countryKey];
+            
+            // Set each piece of data into variables
+            const countryName = country.name;
+            const countryCapital = country.country_capital;
+            const countryRegion = country.region_code;
+            const countryContinent = country.continent_code;
+            const countryTimezone = country.timezone;
+            const countryCallingCode = country.calling_code;
+            const countryCurrency = country.currency.label;
+            const countryCurrencySign = country.currency.sign;
+
+            // Create a div for each country
+            const countryList = document.createElement("div");
+            countryList.classList.add("lcsCountryList");
+
+            // Set data attributes using the variables
+            countryList.setAttribute("data-country_name", countryName);
+            countryList.setAttribute("data-country_capital", countryCapital);
+            countryList.setAttribute("data-region_code", countryRegion);
+            countryList.setAttribute("data-continent_code", countryContinent);
+            countryList.setAttribute("data-timezone", countryTimezone);
+            countryList.setAttribute("data-calling_code", countryCallingCode);
+            countryList.setAttribute("data-currency", countryCurrency);
+            countryList.setAttribute("data-currency_sign", countryCurrencySign);
+
+            // Set text content for visual verification
+            const countryNameElement = document.createElement("span");
+            countryNameElement.textContent = countryName;
+            countryList.innerHTML = countryNameElement.outerHTML;
+
+            // Append each country div to the container
+            countryListContainer.appendChild(countryList);
+        }
+    }
+
+    // Set callback attribute if onSelectCallback is provided and exists as a function
+    if (onSelectCallback !== null) {
+        if (typeof window[onSelectCallback] === 'function') {
+            countryListContainer.setAttribute("data-osc", onSelectCallback);
+        } else {
+            throw new Error(`Specified function '${onSelectCallback}' is not defined`);
+        }
+    }
+
+    // Append the country list container to the specified output element if provided
+    if (outputElement && outputElement instanceof HTMLElement) {
+        outputElement.appendChild(countryListContainer);
+    }
+
+    // Return the list of countries if getData is true
+    if (getData === true) {
+        return countryListToBuild;
     }
 }
 
+/**
+ * Event listener to prevent multiple country list inputs on the same page.
+ * Removes duplicates and throws an error if more than one is detected.
+ */
+document.addEventListener("DOMContentLoaded", () => {
+    const existingInput = document.querySelectorAll(".lcsCountryForInput");
+    if (existingInput.length > 1) {
+        for (let i = 0; i < existingInput.length; i++) {
+            existingInput[i].remove(); // Removes duplicate country lists
+        }
+        throw new Error("You can't have more than one country list for input on the same page.");
+    }
+});
 
-// Example usage
-const instance = new lcsCountry();
-console.log(instance);
+/**
+ * Event listener for document clicks to populate input fields based on
+ * selected country data attributes.
+ *
+ * @param {Event} event - The click event.
+ */
+document.addEventListener("click", function(event) {
+    const countryList = event.target.closest(".lcsCountryList");
+    if (countryList) {
+        const countryListContainer = countryList.closest(".lcsCountryListContainer");
+        if (countryListContainer && countryListContainer.classList.contains("lcsCountryForInput")) {
+            // Retrieves country data attributes from clicked country list item
+            const countryNameValue = countryList.getAttribute("data-country_name");
+            const countryCapitalValue = countryList.getAttribute("data-country_capital");
+            const countryRegionCodeValue = countryList.getAttribute("data-region_code");
+            const countryContinentCodeValue = countryList.getAttribute("data-continent_code");
+            const countryTimezoneValue = countryList.getAttribute("data-timezone");
+            const countryCallingCodeValue = countryList.getAttribute("data-calling_code");
+            const countryCurrencyValue = countryList.getAttribute("data-currency");
+            const countryCurrencySignValue = countryList.getAttribute("data-currency_sign");
+
+            // Selects input elements to populate with retrieved values
+            const countryNameInputLocation = document.querySelector(".getCountryNameValue");
+            const countryCapitalInputLocation = document.querySelector(".getCountryCapitalValue");
+            const countryRegionCodeInputLocation = document.querySelector(".getRegionCodeValue");
+            const countryContinentCodeInputLocation = document.querySelector(".getContinentCodeValue");
+            const countryTimezoneInputLocation = document.querySelector(".getTimezoneValue");
+            const countryCallingCodeInputLocation = document.querySelector(".getCallingCodeValue");
+            const countryCurrencyInputLocation = document.querySelector(".getCurrencyValue");
+            const countryCurrencySignInputLocation = document.querySelector(".getCurrencySignValue");
+
+            /**
+             * Assigns a value to a specified input element, ensuring it's valid.
+             *
+             * @param {HTMLElement} element - The element to check and assign a value to.
+             * @param {string} value - The value to assign.
+             * @param {string} errorMessage - Error message if the element is invalid.
+             */
+            function setInputValue(element, value, errorMessage) {
+                if (element) {
+                    if (!isInputElement(element)) {
+                        throw new Error(errorMessage);
+                    }
+                    element.value = value;
+                }
+            }
+
+            // Set each input with the corresponding data value
+            setInputValue(countryNameInputLocation, countryNameValue, "The field for country name must be a valid input element.");
+            setInputValue(countryCapitalInputLocation, countryCapitalValue, "The field for country capital must be a valid input element.");
+            setInputValue(countryRegionCodeInputLocation, countryRegionCodeValue, "The field for region code must be a valid input element.");
+            setInputValue(countryContinentCodeInputLocation, countryContinentCodeValue, "The field for continent code must be a valid input element.");
+            setInputValue(countryTimezoneInputLocation, countryTimezoneValue, "The field for timezone must be a valid input element.");
+            setInputValue(countryCallingCodeInputLocation, countryCallingCodeValue, "The field for calling code must be a valid input element.");
+            setInputValue(countryCurrencyInputLocation, countryCurrencyValue, "The field for currency must be a valid input element.");
+            setInputValue(countryCurrencySignInputLocation, countryCurrencySignValue, "The field for currency sign must be a valid input element.");
+
+            // Execute callback if defined
+            if (countryListContainer.hasAttribute("data-osc")) {
+                const OSC = countryListContainer.getAttribute("data-osc");
+                if (typeof window[OSC] === 'function') {
+                    window[OSC]();
+                } else {
+                    throw new Error(`Unexpected error: Specified onSelectCallback function "${OSC}" is missing or undefined.`);
+                }
+            }
+        }
+    }
+});
+
+/**
+ * Checks if the provided element is an input-like element that supports the `.value` property.
+ *
+ * @param {Element} element - The DOM element to check.
+ * @returns {boolean} - Returns true if the element is an input, textarea, or select element; otherwise, false.
+ *
+ * @example
+ * const element = document.getElementById("myInput");
+ * isInputElement(element); // Returns true if element is an input
+ */
+function isInputElement(element) {
+    return (
+        element instanceof HTMLInputElement || 
+        element instanceof HTMLTextAreaElement || 
+        element instanceof HTMLSelectElement
+    );
+}
